@@ -1,0 +1,69 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: kivy/buildozer:latest  # Готовый образ со всем необходимым
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Проверка файлов
+        run: |
+          echo "=== Содержимое папки ==="
+          ls -la
+          echo "=== Проверка main.py ==="
+          cat main.py || echo "main.py не найден"
+      
+      - name: Создание простого buildozer.spec
+        run: |
+          cat > buildozer.spec << 'EOF'
+[app]
+title = Telegram Proxy
+package.name = telegramproxy
+package.domain = org.example
+
+source.dir = .
+source.include_exts = py,png,jpg,kv,atxt
+
+version = 1.0
+
+requirements = python3,kivy
+
+orientation = portrait
+
+osx.python_version = 3
+osx.kivy_version = 2.1.0
+
+fullscreen = 0
+
+android.permissions = INTERNET
+android.api = 33
+android.minapi = 21
+android.ndk = 25b
+android.sdk = 33
+android.accept_sdk_license = True
+
+[buildozer]
+log_level = 2
+warn_on_root = 1
+EOF
+          
+          echo "=== buildozer.spec создан ==="
+          cat buildozer.spec
+      
+      - name: Сборка APK
+        run: |
+          buildozer android debug
+      
+      - name: Загрузка APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-proxy-apk
+          path: bin/*.apk
